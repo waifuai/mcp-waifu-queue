@@ -23,16 +23,22 @@ dependencies = [
 test = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
+    "pytest-asyncio>=0.18",  # Added for async tests
+    "fakeredis[lua]>=2.0",    # Added for mocking Redis
+    "requests-mock>=1.9"     # Added for mocking HTTP requests to respond.py
 ]
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools] # Added to specify the package
+packages = ["mcp_waifu_queue"]
+
 [tool.pytest.ini_options]
 pythonpath = [
   ".",
-  "src",
+  "mcp_waifu_queue", # Corrected path
 ]
 testpaths = ["tests"]
 addopts = "--cov=mcp_waifu_queue --cov-report term-missing"

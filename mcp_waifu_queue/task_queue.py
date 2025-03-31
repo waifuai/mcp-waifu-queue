@@ -1,7 +1,7 @@
 import logging
 import requests
 import redis
-from rq import Queue, Worker
+from rq import Queue
 from rq.job import Job
 
 from mcp_waifu_queue.config import Config

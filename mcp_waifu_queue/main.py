@@ -1,11 +1,11 @@
 import logging
 
 from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp.context import Context
+from mcp.server.fastmcp import Context
 
 from mcp_waifu_queue.config import Config
 from mcp_waifu_queue.models import GenerateTextRequest, JobStatusResponse
-from mcp_waifu_queue.queue import q, add_to_queue, get_job_status_from_queue
+from mcp_waifu_queue.task_queue import q, add_to_queue, get_job_status_from_queue
 
 # --- Configuration and Logging ---
 app = FastMCP(name="WaifuQueue")
@@ -29,7 +29,7 @@ async def generate_text(request: GenerateTextRequest, context: Context) -> dict:
 
 # --- MCP Resources ---
 @app.resource(uri="job://{job_id}")
-async def get_job_status(job_id: str, context: Context) -> JobStatusResponse:
+async def get_job_status(job_id: str) -> JobStatusResponse:
     """Retrieves the status of a job."""
     status, result = get_job_status_from_queue(job_id)
     logger.info(f"Job status for {job_id}: {status}")
