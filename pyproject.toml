@@ -14,9 +14,11 @@ dependencies = [
     "anyio>=4.3",
     "redis>=4.0",
     "rq>=1.10",
-    "transformers>=4.0",
-    "torch>=1.10",
-    "mcp>=1.1.0"
+    # "transformers>=4.0", # Removed
+    # "torch>=1.10", # Removed
+    "mcp>=1.1.0",
+    "google-generativeai>=0.4", # Added
+    "python-dotenv>=1.0" # Added
 ]
 
 [project.optional-dependencies]

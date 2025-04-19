@@ -15,14 +15,9 @@ fi
 
 # Start worker.py
 echo "Starting worker.py"
-nohup python3 mcp_waifu_queue/worker.py &
+nohup python3 -m mcp_waifu_queue.worker & # Use python -m for module execution
 
-# Start queue service
-echo "Starting queue service"
-FLASK_APP=mcp_waifu_queue/queue.py FLASK_ENV=production QUEUE_PORT=${QUEUE_PORT:-5000} nohup flask run --host=0.0.0.0 --port=${QUEUE_PORT} &
+# Removed queue service start
+# Removed response service start
 
-# Start response service
-echo "Starting response service"
-FLASK_APP=mcp_waifu_queue/respond.py FLASK_ENV=production RESPOND_PORT=${RESPOND_PORT:-5001} nohup flask run --host=0.0.0.0 --port=${RESPOND_PORT} &
-
-echo "Services started."
+echo "Worker service started."

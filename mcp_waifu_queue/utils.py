@@ -1,20 +1,35 @@
 import logging
-import requests
-from mcp_waifu_queue.config import Config
+# Removed requests import
+# Removed GPUServiceError class
+# Removed config import as it's not used here anymore
 
-class GPUServiceError(Exception):
-    """Custom exception for GPU service errors."""
-    pass
+# Import the actual prediction function
+from mcp_waifu_queue.respond import predict_response
 
-config = Config.load()
+logger = logging.getLogger(__name__)
 
-# This function calls the GPU service to generate a response for a given prompt.
-def call_predict_response(prompt):
+# This function now directly calls the local predict_response function.
+def call_predict_response(prompt: str) -> str:
+    """
+    Calls the Gemini prediction function directly.
+
+    Args:
+        prompt: The input prompt string.
+
+    Returns:
+        The generated text response.
+
+    Raises:
+        RuntimeError: If the underlying predict_response fails.
+    """
+    logger.info(f"Worker calling predict_response for prompt: '{prompt[:50]}...'")
     try:
-        response = requests.post(f"{config.gpu_service_url}/generate", json={'prompt': prompt})
-        response.raise_for_status()
-        return response.json()['response']
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error calling GPU service: {e}")
-        # Raise an exception so RQ marks the job as failed
-        raise GPUServiceError(f"Error calling GPU service: {e}")
+        # Directly call the function from respond.py
+        result = predict_response(prompt)
+        logger.info(f"predict_response returned: '{result[:50]}...'")
+        return result
+    except Exception as e:
+        # Log the error and re-raise it so RQ marks the job as failed
+        logger.error(f"Error calling predict_response: {e}", exc_info=True)
+        # Re-raising the original exception or a new one to signal failure
+        raise # Reraises the caught exception
