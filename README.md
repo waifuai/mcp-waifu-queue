@@ -22,7 +22,7 @@ This project implements an MCP (Model Context Protocol) server for a conversatio
 *   Request queuing using Redis for handling concurrent requests asynchronously.
 *   MCP-compliant API using `FastMCP`.
 *   Job status tracking via MCP resources.
-*   Configuration via environment variables (`.env` file).
+*   Configuration via environment variables (`.env` file) and API key loading from `~/.api-gemini`.
 
 ## Architecture
 
@@ -121,20 +121,23 @@ You can obtain a Gemini API key from Google AI Studio: [https://aistudio.google.
 
 ## Configuration
 
-1.  Copy the `.env.example` file to `.env`:
+1.  **API Key:** Create a file named `.api-gemini` in your home directory (`~/.api-gemini`) and place your Google Gemini API key inside it. Ensure the file has no extra whitespace.
+    ```bash
+    echo "YOUR_API_KEY_HERE" > ~/.api-gemini
+    ```
+    *(Replace `YOUR_API_KEY_HERE` with your actual key)*
+
+2.  **Other Settings:** Copy the `.env.example` file to `.env`:
 
     ```bash
     cp .env.example .env
     ```
 
-2.  Modify the `.env` file to set the appropriate values:
+3.  Modify the `.env` file to set the remaining configuration values:
 
-    *   `GEMINI_API_KEY`: **Required**. Your API key for the Google Gemini service.
     *   `MAX_NEW_TOKENS`: Maximum number of tokens for the Gemini response (default: `2048`).
     *   `REDIS_URL`: The URL of your Redis server (default: `redis://localhost:6379`).
     *   `FLASK_ENV`, `FLASK_APP`: Optional, related to Flask if used elsewhere, not core to the MCP server/worker operation.
-
-    **Note:** The `.env` file contains sensitive information (API key) and should **not** be committed to version control. Ensure `.env` is listed in your `.gitignore` file.
 
 ## Running the Service
 
@@ -195,8 +198,8 @@ pytest tests
 
 ## Troubleshooting
 
-*   **Error: `GEMINI_API_KEY environment variable not set`**: Ensure you have created a `.env` file from `.env.example` and added your valid Gemini API key to it. Also ensure `python-dotenv` is installed and working.
-*   **Error during Gemini API call (e.g., AuthenticationError, PermissionDenied)**: Double-check that your `GEMINI_API_KEY` in `.env` is correct and valid. Ensure the API is enabled for your Google Cloud project if applicable.
+*   **Error: `Gemini API key not found in .../.api-gemini or GEMINI_API_KEY environment variable`**: Ensure you have created the `~/.api-gemini` file in your home directory and placed your valid Gemini API key inside it. Alternatively, ensure the `GEMINI_API_KEY` environment variable is set as a fallback.
+*   **Error during Gemini API call (e.g., AuthenticationError, PermissionDenied)**: Double-check that the API key in `~/.api-gemini` (or the fallback environment variable) is correct and valid. Ensure the API is enabled for your Google Cloud project if applicable.
 *   **Jobs stuck in "queued"**: Verify that the RQ worker (`python -m mcp_waifu_queue.worker`) is running in a separate terminal and connected to the same Redis instance specified in `.env`. Check the worker logs for errors.
 *   **ConnectionRefusedError (Redis)**: Make sure your Redis server is running and accessible at the `REDIS_URL` specified in `.env`.
 *   **MCP Server Connection Issues**: Ensure the MCP server (`uvicorn ...`) is running and you are connecting to the correct host/port.

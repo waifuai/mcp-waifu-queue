@@ -2,12 +2,10 @@
 # This file contains the core text generation logic using the Gemini API.
 
 import os
+from pathlib import Path # Added for home directory access
 import google.generativeai as genai
 import logging
-from dotenv import load_dotenv
-
-# Load environment variables from .env file if it exists
-load_dotenv()
+# Removed dotenv import
 
 from mcp_waifu_queue.config import Config
 
@@ -21,10 +19,19 @@ logger = logging.getLogger(__name__)
 # --- Gemini API Configuration ---
 gemini_model = None
 try:
-    api_key = os.getenv("GEMINI_API_KEY")
+    # Load API key from ~/.api-gemini
+    api_key_path = Path.home() / ".api-gemini"
+    api_key = None
+    if api_key_path.is_file():
+        api_key = api_key_path.read_text().strip()
+        logger.info(f"Loaded Gemini API key from {api_key_path}")
+    else:
+        logger.warning(f"API key file not found at {api_key_path}. Attempting to use environment variable GEMINI_API_KEY as fallback.")
+        api_key = os.getenv("GEMINI_API_KEY") # Fallback to env var if file not found
+
     if not api_key:
         logger.error(
-            "GEMINI_API_KEY environment variable not set. Cannot initialize Gemini."
+            f"Gemini API key not found in {api_key_path} or GEMINI_API_KEY environment variable. Cannot initialize Gemini."
         )
     else:
         genai.configure(api_key=api_key)
