@@ -18,7 +18,7 @@ This project implements an MCP (Model Context Protocol) server for a conversatio
 
 ## Features
 
-*   Text generation using the Google Gemini API (`gemini-2.5-flash-preview-04-17`).
+*   Text generation using the Google Gemini API (`gemini-2.5-pro-preview-03-25`).
 *   Request queuing using Redis for handling concurrent requests asynchronously.
 *   MCP-compliant API using `FastMCP`.
 *   Job status tracking via MCP resources.
