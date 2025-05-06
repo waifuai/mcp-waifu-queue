@@ -36,8 +36,8 @@ try:
     else:
         genai.configure(api_key=api_key)
         # TODO: Make model name configurable?
-        gemini_model = genai.GenerativeModel('gemini-2.5-pro-preview-03-25')
-        logger.info("Gemini API configured successfully with model gemini-2.5-pro-preview-03-25.")
+        gemini_model = genai.GenerativeModel('gemini-2.5-pro-preview-05-06')
+        logger.info("Gemini API configured successfully with model gemini-2.5-pro-preview-05-06.")
         # Test call to check API key validity (optional, but good for early feedback)
         # try:
         #     gemini_model.generate_content("test", generation_config=genai.types.GenerationConfig(max_output_tokens=5))
