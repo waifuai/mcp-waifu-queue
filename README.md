@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/waifuai-mcp-waifu-queue-badge.png)](https://mseep.ai/app/waifuai-mcp-waifu-queue)
+
 # MCP Waifu Queue (Gemini Edition)
 
 This project implements an MCP (Model Context Protocol) server for a conversational AI "waifu" character, leveraging the Google Gemini API via a Redis queue for asynchronous processing. It utilizes the `FastMCP` library for simplified server setup and management.
