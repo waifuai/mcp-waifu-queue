@@ -1,0 +1,4 @@
+# Runtime dependencies (flexible pins suitable for OSS consumers)
+
+# Google GenAI SDK (Client-centric API)
+google-genai~=1.28

@@ -29,7 +29,7 @@ This project implements an MCP (Model Context Protocol) server for a conversatio
 The project consists of several key components:
 
 *   **`main.py`**: The main entry point, initializing the `FastMCP` application and defining MCP tools/resources.
-*   **`respond.py`**: Contains the core text generation logic using the `google-generativeai` library to interact with the Gemini API.
+*   **`respond.py`**: Contains the core text generation logic using the Google GenAI SDK (`google-genai`) via the centralized `genai.Client`.
 *   **`task_queue.py`**: Handles interactions with the Redis queue (using `python-rq`), enqueuing generation requests.
 *   **`utils.py`**: Contains utility functions, specifically `call_predict_response` which is executed by the worker to call the Gemini logic in `respond.py`.
 *   **`worker.py`**: A Redis worker (`python-rq`) that processes jobs from the queue, calling `call_predict_response`.
@@ -86,42 +86,27 @@ You can obtain a Gemini API key from Google AI Studio: [https://aistudio.google.
     cd mcp-waifu-queue
     ```
 
-2.  Create and activate a virtual environment (using `venv` or `uv`):
+2.  Create and activate a virtual environment using `uv`:
 
-    *Using `venv` (standard library):*
     ```bash
-    python -m venv .venv
-    source .venv/bin/activate  # On Linux/macOS
-    # .venv\Scripts\activate  # On Windows CMD
-    # source .venv/Scripts/activate # On Windows Git Bash/PowerShell Core
-    ```
-
-    *Using `uv` (if installed):*
-    ```bash
-    # Ensure uv is installed (e.g., pip install uv)
     python -m uv venv .venv
-    source .venv/bin/activate # Or equivalent activation for your shell
+    .venv/Scripts/python.exe -m ensurepip
+    .venv/Scripts/python.exe -m pip install uv
     ```
 
-3.  Install dependencies (using `pip` within the venv or `uv`):
+3.  Install dependencies:
 
-    *Using `pip`:*
     ```bash
-    pip install -e .[test] # Installs package in editable mode with test extras
-    ```
-
-    *Using `uv`:*
-    ```bash
-    # Ensure uv is installed inside the venv if desired, or use the venv's python
-    # .venv/Scripts/python.exe -m pip install uv # Example for Windows
-    .venv/Scripts/python.exe -m uv pip install -e .[test] # Example for Windows
-    # python -m uv pip install -e .[test] # If uv is in PATH after venv activation
+    .venv/Scripts/python.exe -m uv pip install -r requirements.txt
+    .venv/Scripts/python.exe -m uv pip install -r requirements-dev.txt
     ```
 
 
 ## Configuration
 
-1.  **API Key:** Create a file named `.api-gemini` in your home directory (`~/.api-gemini`) and place your Google Gemini API key inside it. Ensure the file has no extra whitespace.
+1.  **API Key:** Preferred via environment variables:
+    - `GEMINI_API_KEY` or `GOOGLE_API_KEY`
+    Fallback: Create `~/.api-gemini` with your key as a single line. Ensure no trailing whitespace.
     ```bash
     echo "YOUR_API_KEY_HERE" > ~/.api-gemini
     ```
