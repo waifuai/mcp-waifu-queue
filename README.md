@@ -1,4 +1,4 @@
-# MCP Waifu Queue (Gemini Edition)
+# MCP Waifu Queue
 
 This project implements an MCP (Model Context Protocol) server for a conversational AI "waifu" character, leveraging the Google Gemini API via a Redis queue for asynchronous processing. It utilizes the `FastMCP` library for simplified server setup and management.
 
@@ -18,11 +18,22 @@ This project implements an MCP (Model Context Protocol) server for a conversatio
 
 ## Features
 
-*   Text generation using the Google Gemini API (`gemini-2.5-pro`).
+*   Text generation via provider abstraction:
+    - OpenRouter (default) using model from `~/.model-openrouter` or `openrouter/horizon-beta`.
+    - Google Gemini supported as fallback or via selection, model from `~/.model-gemini` or `gemini-2.5-pro`.
 *   Request queuing using Redis for handling concurrent requests asynchronously.
 *   MCP-compliant API using `FastMCP`.
 *   Job status tracking via MCP resources.
-*   Configuration via environment variables (`.env` file) and API key loading from `~/.api-gemini`.
+*   Configuration via environment variables (`.env` file).
+*   Provider selection:
+    - Default provider: OpenRouter
+    - Override via `PROVIDER=openrouter` or `PROVIDER=gemini`
+*   API key loading:
+    - OpenRouter: `OPENROUTER_API_KEY` or `~/.api-openrouter`
+    - Gemini: `GEMINI_API_KEY` or `GOOGLE_API_KEY` or `~/.api-gemini`
+*   Model selection files in home directory:
+    - `~/.model-openrouter` for OpenRouter model name
+    - `~/.model-gemini` for Gemini model name
 
 ## Architecture
 
@@ -72,7 +83,7 @@ graph LR
 *   Python 3.7+
 *   `pip` or `uv` (Python package installer)
 *   Redis server (installed and running)
-*   A Google Gemini API Key
+*   An OpenRouter API Key and or a Google Gemini API Key
 
 You can find instructions for installing Redis on your system on the official Redis website: [https://redis.io/docs/getting-started/](https://redis.io/docs/getting-started/)
 You can obtain a Gemini API key from Google AI Studio: [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
@@ -104,9 +115,27 @@ You can obtain a Gemini API key from Google AI Studio: [https://aistudio.google.
 
 ## Configuration
 
-1.  **API Key:** Preferred via environment variables:
-    - `GEMINI_API_KEY` or `GOOGLE_API_KEY`
-    Fallback: Create `~/.api-gemini` with your key as a single line. Ensure no trailing whitespace.
+1.  **Provider Selection:**
+    - Default provider is OpenRouter. To override, set:
+      ```
+      PROVIDER=openrouter
+      ```
+      or
+      ```
+      PROVIDER=gemini
+      ```
+2.  **Model Names via files in $HOME:**
+    - OpenRouter model file:
+      ```
+      echo "openrouter/horizon-beta" > ~/.model-openrouter
+      ```
+    - Gemini model file:
+      ```
+      echo "gemini-2.5-pro" > ~/.model-gemini
+      ```
+3.  **API Keys:** Preferred via environment variables with file fallback:
+    - OpenRouter: `OPENROUTER_API_KEY` or `~/.api-openrouter`
+    - Gemini: `GEMINI_API_KEY` or `GOOGLE_API_KEY` or `~/.api-gemini`
     ```bash
     echo "YOUR_API_KEY_HERE" > ~/.api-gemini
     ```
@@ -183,7 +212,8 @@ pytest tests
 
 ## Troubleshooting
 
-*   **Error: `Gemini API key not found in .../.api-gemini or GEMINI_API_KEY environment variable`**: Ensure you have created the `~/.api-gemini` file in your home directory and placed your valid Gemini API key inside it. Alternatively, ensure the `GEMINI_API_KEY` environment variable is set as a fallback.
+*   **Error: `OpenRouter API key not available`**: Ensure `OPENROUTER_API_KEY` is set or `~/.api-openrouter` exists with your key on a single line (no whitespace).
+*   **Error: `Gemini API key not available`**: Ensure `GEMINI_API_KEY` or `GOOGLE_API_KEY` is set, or `~/.api-gemini` exists with your key on a single line.
 *   **Error during Gemini API call (e.g., AuthenticationError, PermissionDenied)**: Double-check that the API key in `~/.api-gemini` (or the fallback environment variable) is correct and valid. Ensure the API is enabled for your Google Cloud project if applicable.
 *   **Jobs stuck in "queued"**: Verify that the RQ worker (`python -m mcp_waifu_queue.worker`) is running in a separate terminal and connected to the same Redis instance specified in `.env`. Check the worker logs for errors.
 *   **ConnectionRefusedError (Redis)**: Make sure your Redis server is running and accessible at the `REDIS_URL` specified in `.env`.
