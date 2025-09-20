@@ -11,7 +11,7 @@ import requests
 
 
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-DEFAULT_OPENROUTER_MODEL = "openrouter/horizon-beta"
+DEFAULT_OPENROUTER_MODEL = "deepseek/deepseek-chat-v3-0324:free"
 OPENROUTER_API_KEY_FILE_PATH = Path.home() / ".api-openrouter"
 MODEL_FILE_PATH = Path.home() / ".model-openrouter"
 

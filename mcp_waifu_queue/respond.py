@@ -31,7 +31,7 @@ def _read_single_line(path: Path) -> Optional[str]:
 
 def _resolve_model_for(provider: str) -> Optional[str]:
     if provider == PROVIDER_OPENROUTER:
-        return _read_single_line(MODEL_FILE_OPENROUTER) or "openrouter/horizon-beta"
+        return _read_single_line(MODEL_FILE_OPENROUTER) or "deepseek/deepseek-chat-v3-0324:free"
     if provider == PROVIDER_GEMINI:
         return _read_single_line(MODEL_FILE_GEMINI) or "gemini-2.5-pro"
     return None
@@ -139,7 +139,7 @@ def predict_response(prompt: str) -> str:
 
     if provider == PROVIDER_OPENROUTER:
         try:
-            return _predict_with_openrouter(prompt, model=model or "openrouter/horizon-beta", timeout=cfg.request_timeout_seconds)
+            return _predict_with_openrouter(prompt, model=model or "deepseek/deepseek-chat-v3-0324:free", timeout=cfg.request_timeout_seconds)
         except Exception as e:
             logger.error(f"OpenRouter failed: {e}", exc_info=True)
             # Fallback to Gemini
@@ -156,7 +156,7 @@ def predict_response(prompt: str) -> str:
             logger.error(f"Gemini failed: {e}", exc_info=True)
             # Fallback to OpenRouter
             try:
-                or_model = _resolve_model_for(PROVIDER_OPENROUTER) or "openrouter/horizon-beta"
+                or_model = _resolve_model_for(PROVIDER_OPENROUTER) or "deepseek/deepseek-chat-v3-0324:free"
                 return _predict_with_openrouter(prompt, model=or_model, timeout=cfg.request_timeout_seconds)
             except Exception as oe:
                 logger.error(f"OpenRouter fallback failed: {oe}", exc_info=True)
@@ -164,7 +164,7 @@ def predict_response(prompt: str) -> str:
     else:
         # Safety: unknown provider, try OpenRouter then Gemini
         try:
-            return _predict_with_openrouter(prompt, model="openrouter/horizon-beta", timeout=cfg.request_timeout_seconds)
+            return _predict_with_openrouter(prompt, model="deepseek/deepseek-chat-v3-0324:free", timeout=cfg.request_timeout_seconds)
         except Exception as e:
             logger.error(f"OpenRouter failed under unknown provider: {e}", exc_info=True)
             try:

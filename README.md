@@ -19,7 +19,7 @@ This project implements an MCP (Model Context Protocol) server for a conversatio
 ## Features
 
 *   Text generation via provider abstraction:
-    - OpenRouter (default) using model from `~/.model-openrouter` or `openrouter/horizon-beta`.
+    - OpenRouter (default) using model from `~/.model-openrouter` or `deepseek/deepseek-chat-v3-0324:free`.
     - Google Gemini supported as fallback or via selection, model from `~/.model-gemini` or `gemini-2.5-pro`.
 *   Request queuing using Redis for handling concurrent requests asynchronously.
 *   MCP-compliant API using `FastMCP`.
@@ -127,7 +127,7 @@ You can obtain a Gemini API key from Google AI Studio: [https://aistudio.google.
 2.  **Model Names via files in $HOME:**
     - OpenRouter model file:
       ```
-      echo "openrouter/horizon-beta" > ~/.model-openrouter
+      echo "deepseek/deepseek-chat-v3-0324:free" > ~/.model-openrouter
       ```
     - Gemini model file:
       ```
