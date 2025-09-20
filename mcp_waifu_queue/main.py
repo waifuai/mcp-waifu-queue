@@ -1,3 +1,25 @@
+"""
+Main MCP Server Implementation.
+
+This module serves as the main entry point for the MCP Waifu Queue server,
+implementing the core MCP (Model Context Protocol) tools and resources for
+asynchronous AI text generation using Redis queues.
+
+The server provides:
+- generate_text tool: Accepts prompts and enqueues them for background processing
+- job status resource: Allows checking the status and results of submitted jobs
+
+Architecture:
+- Uses FastMCP for MCP server implementation
+- Integrates with Redis queue system via task_queue module
+- Supports configuration loading and logging
+- Provides async endpoints for MCP client integration
+
+Usage:
+    Run as MCP server using FastMCP or uvicorn:
+    uvicorn mcp_waifu_queue.main:app --reload --port 8000
+"""
+
 import logging
 
 from mcp.server.fastmcp import FastMCP

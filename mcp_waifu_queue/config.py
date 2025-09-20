@@ -1,3 +1,36 @@
+"""
+Configuration Management for MCP Waifu Queue.
+
+This module provides configuration management using Pydantic settings for the
+MCP Waifu Queue system. It handles loading configuration from environment
+variables, .env files, and provides type-safe configuration objects.
+
+Key Features:
+- Environment variable and .env file loading
+- Type-safe configuration with Pydantic v2
+- Immutable configuration objects (frozen)
+- Provider override support via environment variables
+- Comprehensive field descriptions for documentation
+
+Configuration Fields:
+- max_new_tokens: Maximum tokens for AI generation (default: 2048)
+- redis_url: Redis server connection URL (default: redis://localhost:6379)
+- default_provider: Default AI provider (default: openrouter)
+- request_timeout_seconds: HTTP request timeout (default: 60)
+
+Provider Support:
+- OpenRouter (default)
+- Google Gemini (fallback/override)
+
+The load() classmethod allows runtime provider override via the PROVIDER
+environment variable while maintaining Pydantic's immutability guarantees.
+
+Usage:
+    config = Config.load()  # Load with optional PROVIDER override
+    redis_url = config.redis_url
+    max_tokens = config.max_new_tokens
+"""
+
 import os
 
 from pydantic import Field

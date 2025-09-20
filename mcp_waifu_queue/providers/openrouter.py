@@ -1,3 +1,44 @@
+"""
+OpenRouter AI Provider Implementation.
+
+This module provides a client for the OpenRouter API, which serves as the default
+AI provider for the MCP Waifu Queue system. It handles API key resolution, model
+selection, and text generation requests to the OpenRouter service.
+
+Key Features:
+- OpenRouter API integration for text generation
+- Flexible API key resolution (environment variables or files)
+- Model selection via files or defaults
+- Error handling for API failures and missing keys
+- Configurable request timeouts
+- JSON payload construction and response parsing
+
+API Configuration:
+- API URL: https://openrouter.ai/api/v1/chat/completions
+- Default Model: deepseek/deepseek-chat-v3-0324:free
+- Temperature: 0.2 (for consistent responses)
+- Timeout: 60 seconds (configurable)
+
+Authentication:
+The module supports multiple authentication methods in order of precedence:
+1. OPENROUTER_API_KEY environment variable
+2. ~/.api-openrouter file containing the API key
+
+Model Selection:
+Models can be configured via:
+1. ~/.model-openrouter file containing the model name
+2. Default model fallback: deepseek/deepseek-chat-v3-0324:free
+
+Usage:
+This module is typically used through the respond.py module, which provides
+the main interface for text generation with provider fallback logic.
+
+Dependencies:
+- requests: For HTTP API calls
+- os, pathlib: For file system and environment operations
+- typing: For type hints
+"""
+
 # mcp_waifu_queue/providers/openrouter.py
 # Minimal OpenRouter client kept separate for potential direct imports if needed.
 

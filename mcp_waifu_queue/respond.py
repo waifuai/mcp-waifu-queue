@@ -1,3 +1,49 @@
+"""
+AI Provider Dispatch and Text Generation.
+
+This module implements the core text generation functionality for the MCP Waifu Queue
+system, providing a unified interface for multiple AI providers with automatic
+fallback and provider selection logic.
+
+Key Features:
+- Multi-provider support (OpenRouter and Google Gemini)
+- Automatic provider selection and fallback logic
+- Centralized text generation dispatch
+- Error handling and logging for all providers
+- Lazy imports to avoid hard dependencies
+- Configuration-driven provider selection
+
+Provider Support:
+- OpenRouter (default): Uses deepseek/deepseek-chat-v3-0324:free by default
+- Google Gemini (fallback): Uses gemini-2.5-pro by default
+- Automatic fallback between providers on failures
+- Runtime provider override via PROVIDER environment variable
+
+Architecture:
+The module provides a single public function `predict_response()` that:
+1. Loads configuration and determines the active provider
+2. Resolves the appropriate model for the selected provider
+3. Attempts text generation with the primary provider
+4. Falls back to the secondary provider if the primary fails
+5. Provides comprehensive error handling and logging
+
+Model Configuration:
+- OpenRouter models: Configured via ~/.model-openrouter or default
+- Gemini models: Configured via ~/.model-gemini or default
+- Support for custom models via file configuration
+
+Usage:
+This module is used by the RQ worker process through utils.py. The main
+entry point is the predict_response() function which handles all provider
+logic and returns generated text.
+
+Dependencies:
+- google-genai: For Google Gemini API integration
+- requests: For OpenRouter API calls
+- logging: For operation logging and debugging
+- config: For configuration management
+"""
+
 # mcp_waifu_queue/respond.py
 # Provider-dispatching text generation with OpenRouter default and Gemini fallback.
 

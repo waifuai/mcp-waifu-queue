@@ -1,3 +1,32 @@
+"""
+Redis Queue Management Module.
+
+This module provides functionality for managing the Redis job queue system used
+for asynchronous AI text generation requests. It integrates with the RQ (Redis Queue)
+library to handle job enqueuing, status tracking, and result retrieval.
+
+Key Features:
+- Job enqueuing for text generation requests
+- Job status tracking (queued, processing, completed, failed, unknown)
+- Result retrieval from completed jobs
+- Integration with Redis for persistent job storage
+- Connection management using configuration settings
+
+Functions:
+- add_to_queue(): Enqueues a prompt for background processing
+- get_job_status_from_queue(): Retrieves job status and results
+
+Dependencies:
+- redis: Redis client for connection management
+- rq: Redis Queue for job management
+- logging: For operation logging
+- config: For Redis URL configuration
+- utils: For the actual prediction function
+
+The queue uses a TTL (Time To Live) of 3600 seconds (1 hour) for job results
+to prevent indefinite storage of generated text.
+"""
+
 import logging
 import requests
 import redis

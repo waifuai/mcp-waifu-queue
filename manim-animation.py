@@ -1,3 +1,28 @@
+"""
+Manim animation script for the MCP Waifu Queue project.
+
+This script creates an animated explanation of the MCP Waifu Queue system,
+demonstrating its architecture, request flow, provider system, and configuration.
+The animation is designed to visually explain how the system processes AI text
+generation requests asynchronously using Redis queues and multiple AI providers.
+
+The animation consists of 6 scenes:
+1. Introduction - Project overview
+2. Architecture Overview - System components and data flow
+3. Request Flow Animation - Dynamic demonstration of request processing
+4. Providers Explanation - Details about OpenRouter and Gemini providers
+5. Configuration - Environment and API key setup
+6. Conclusion - Summary of benefits
+
+Usage:
+    manim -pql manim-animation.py MCPWaifuQueueExplanation
+
+Dependencies:
+    - manim (Mathematical Animation Engine)
+    - Python 3.7+
+"""
+
+from manim import *
 from manim import *
 
 class MCPWaifuQueueExplanation(Scene):

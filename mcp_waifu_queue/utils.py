@@ -1,3 +1,32 @@
+"""
+Worker Utility Functions.
+
+This module contains utility functions used by the Redis Queue worker process
+to execute AI text generation tasks. It serves as the bridge between the RQ job
+queue and the actual text generation logic.
+
+Key Components:
+- call_predict_response(): Main worker function that processes queued prompts
+- Integration with the respond.py module for actual text generation
+- Error handling and logging for job execution
+- Prompt truncation in logs for privacy/debugging balance
+
+Functionality:
+- Receives prompts from the Redis queue via RQ
+- Calls the predict_response function from respond.py
+- Handles exceptions and ensures proper error reporting to RQ
+- Provides logging for debugging and monitoring
+- Returns generated text for storage in Redis
+
+Usage:
+This module is primarily used by the RQ worker process. The call_predict_response
+function is automatically called by RQ when jobs are dequeued and executed.
+
+Dependencies:
+- logging: For operation logging and debugging
+- respond: For the actual AI text generation logic
+"""
+
 import logging
 # Removed requests import
 # Removed GPUServiceError class
