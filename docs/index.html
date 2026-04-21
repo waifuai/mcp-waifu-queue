@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCP Waifu Queue</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --card-bg: #161b22;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --accent2: #7ee787;
+  --accent3: #d2a8ff;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 2rem; }
+.container { max-width: 1100px; margin: 0 auto; }
+header { text-align: center; margin-bottom: 3rem; padding: 2rem 0; border-bottom: 1px solid var(--border); }
+header h1 { font-size: 2.5rem; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 0.5rem; }
+header p { color: var(--text-muted); font-size: 1.1rem; }
+section { margin-bottom: 2.5rem; }
+h2 { font-size: 1.4rem; margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 0.5rem; }
+.count { font-size: 0.85rem; color: var(--text-muted); font-weight: 400; }
+.section-desc { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem; }
+.link-list { display: flex; flex-direction: column; gap: 0.25rem; }
+.link-list a { color: var(--accent); text-decoration: none; padding: 0.4rem 0.75rem; border-radius: 6px; transition: background 0.15s; font-size: 0.95rem; }
+.link-list a:hover { background: var(--card-bg); text-decoration: underline; }
+footer { text-align: center; color: var(--text-muted); font-size: 0.8rem; padding-top: 2rem; border-top: 1px solid var(--border); margin-top: 2rem; }
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>mcp-waifu-queue</h1>
+<p></p>
+</header>
+<section>
+<h2>Project Description</h2>
+<h1>MCP Waifu Queue</h1>
+<p>This project implements an MCP (Model Context Protocol) server for a conversational AI "waifu" character, leveraging the OpenRouter API via a Redis queue for asynchronous processing. It utilizes the <code>FastMCP</code> library for simplified server setup and management.</p>
+<h2>Table of Contents</h2>
+<ul>
+<li><a href="#features">Features</a></li>
+<li><a href="#architecture">Architecture</a></li>
+<li><a href="#prerequisites">Prerequisites</a></li>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#configuration">Configuration</a></li>
+<li><a href="#running-the-service">Running the Service</a></li>
+<li><a href="#mcp-api">MCP API</a></li>
+<li><a href="#testing">Testing</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#contributing">Contributing</a></li>
+<li><a href="#license">License</a></li>
+</ul>
+<h2>Features</h2>
+<ul>
+<li>Text generation via OpenRouter using model from <code>~/.model-openrouter</code> or <code>openrouter/free</code>.</li>
+<li>Request queuing using Redis for handling concurrent requests asynchronously.</li>
+<li>MCP-compliant API using <code>FastMCP</code>.</li>
+<li>Job status tracking via MCP resources.</li>
+<li>Configuration via environment variables (<code>.env</code> file).</li>
+<li>API key loading:<ul>
+<li>OpenRouter: <code>OPENROUTER_API_KEY</code> or <code>~/.api-openrouter</code></li>
+</ul>
+</li>
+<li>Model selection files in home directory:<ul>
+<li><code>~/.model-openrouter</code> for OpenRouter model name</li>
+</ul>
+</li>
+</ul>
+<h2>Architecture</h2>
+<p>The project consists of several key components:</p>
+<ul>
+<li><strong><code>main.py</code></strong>: The main entry point, initializing the <code>FastMCP</code> application and defining MCP tools/resources.</li>
+<li><strong><code>respond.py</code></strong>: Contains the core text generation logic using the OpenRouter API.</li>
+<li><strong><code>task_queue.py</code></strong>: Handles interactions with the Redis queue (using <code>python-rq</code>), enqueuing generation requests.</li>
+<li><strong><code>utils.py</code></strong>: Contains utility functions, specifically <code>call_predict_response</code> which is executed by the worker to call the generation logic in <code>respond.py</code>.</li>
+<li><strong><code>worker.py</code></strong>: A Redis worker (<code>python-rq</code>) that processes jobs from the queue, calling <code>call_predict_response</code>.</li>
+<li><strong><code>config.py</code></strong>: Manages configuration using <code>pydantic-settings</code>.</li>
+<li><strong><code>models.py</code></strong>: Defines Pydantic models for MCP request and response validation.</li>
+</ul>
+<p>The flow of a request is as follows:</p>
+<ol>
+<li>A client sends a request to the <code>generate_text</code> MCP tool (defined in <code>main.py</code>).</li>
+<li>The tool enqueues the request (prompt) to a Redis queue (handled by <code>task_queue.py</code>).</li>
+<li>A <code>worker.py</code> process picks up the job from the queue.</li>
+<li>The worker executes the <code>call_predict_response</code> function (from <code>utils.py</code>).</li>
+<li><code>call_predict_response</code> calls the <code>predict_response</code> function (in <code>respond.py</code>), which interacts with the OpenRouter API.</li>
+<li>The generated text (or an error message) is returned by <code>predict_response</code> and stored as the job result by RQ.</li>
+<li>The client can retrieve the job status and result using the <code>job://{job_id}</code> MCP resource (defined in <code>main.py</code>).</li>
+</ol>
+<pre><code class="language-mermaid">graph LR
+    subgraph Client
+        A[User/Client] --&gt;|1. Send Prompt via MCP Tool| B(mcp-waifu-queue: main.py)
+    end
+    subgraph mcp-waifu-queue Server
+        B --&gt;|2. Enqueue Job (prompt)| C[Redis Queue]
+        B --&gt;|7. Return Job ID| A
+        D[RQ Worker (worker.py)] --|&gt;| C
+        D --&gt;|3. Dequeue Job &amp; Execute| E(utils.call_predict_response)
+        E --&gt;|4. Call Generation Logic| F(respond.predict_response)
+        F --&gt;|5. Call OpenRouter API| G[OpenRouter API]
+        G --&gt;|6. Return Response| F
+        F --&gt; E
+        E --&gt;|Update Job Result in Redis| C
+        A --&gt;|8. Check Status via MCP Resource| B
+        B --&gt;|9. Fetch Job Status/Result| C
+        B --&gt;|10. Return Status/Result| A
+    end
+</code></pre>
+<h2>Prerequisites</h2>
+<ul>
+<li>Python 3.7+</li>
+<li><code>pip</code> or <code>uv</code> (Python package installer)</li>
+<li>Redis server (installed and running)</li>
+<li>An OpenRouter API Key</li>
+</ul>
+<p>You can find instructions for installing Redis on your system on the official Redis website: <a href="https://redis.io/docs/getting-started/">https://redis.io/docs/getting-started/</a>
+You can obtain an OpenRouter API key from: <a href="https://openrouter.ai/">https://openrouter.ai/</a></p>
+<h2>Installation</h2>
+<ol>
+<li>
+<p>Clone the repository:</p>
+<p><code>bash
+git clone &lt;YOUR_REPOSITORY_URL&gt;
+cd mcp-waifu-queue</code></p>
+</li>
+<li>
+<p>Create and activate a virtual environment using <code>uv</code>:</p>
+<p><code>bash
+python -m uv venv .venv
+.venv/Scripts/python.exe -m ensurepip
+.venv/Scripts/python.exe -m pip install uv</code></p>
+</li>
+<li>
+<p>Install dependencies:</p>
+<p><code>bash
+.venv/Scripts/python.exe -m uv pip install -r requirements.txt
+.venv/Scripts/python.exe -m uv pip install -r requirements-dev.txt</code></p>
+</li>
+</ol>
+<h2>Configuration</h2>
+<ol>
+<li><strong>Model Names via files in $HOME:</strong><ul>
+<li>OpenRouter model file:
+  <code>echo "openrouter/free" &gt; ~/.model-openrouter</code></li>
+</ul>
+</li>
+<li>
+<p><strong>API Keys:</strong> Preferred via environment variables with file fallback:</p>
+<ul>
+<li>OpenRouter: <code>OPENROUTER_API_KEY</code> or <code>~/.api-openrouter</code>
+<code>bash
+echo "YOUR_API_KEY_HERE" &gt; ~/.api-openrouter</code>
+<em>(Replace <code>YOUR_API_KEY_HERE</code> with your actual key)</em></li>
+</ul>
+</li>
+<li>
+<p><strong>Other Settings:</strong> Copy the <code>.env.example</code> file to <code>.env</code>:</p>
+<p><code>bash
+cp .env.example .env</code></p>
+</li>
+<li>
+<p>Modify the <code>.env</code> file to set the remaining configuration values:</p>
+<ul>
+<li><code>MAX_NEW_TOKENS</code>: Maximum number of tokens for the response (default: <code>2048</code>).</li>
+<li><code>REDIS_URL</code>: The URL of your Redis server (default: <code>redis://localhost:6379</code>).</li>
+<li><code>FLASK_ENV</code>, <code>FLASK_APP</code>: Optional, related to Flask if used elsewhere, not core to the MCP server/worker operation.</li>
+</ul>
+</li>
+</ol>
+<h2>Running the Service</h2>
+<ol>
+<li>
+<p><strong>Ensure Redis is running.</strong> If you installed it locally, you might need to start the Redis server process (e.g., <code>redis-server</code> command, or via a service manager).</p>
+</li>
+<li>
+<p><strong>Start the RQ Worker:</strong>
+    Open a terminal, activate your virtual environment (<code>source .venv/bin/activate</code> or similar), and run:
+    <code>bash
+    python -m mcp_waifu_queue.worker</code>
+    This command starts the worker process, which will listen for jobs on the Redis queue defined in your <code>.env</code> file. Keep this terminal running.</p>
+</li>
+<li>
+<p><strong>Start the MCP Server:</strong>
+    Open <em>another</em> terminal, activate the virtual environment, and run the MCP server using a tool like <code>uvicorn</code> (you might need to install it: <code>pip install uvicorn</code> or <code>uv pip install uvicorn</code>):
+    <code>bash
+    uvicorn mcp_waifu_queue.main:app --reload --port 8000 # Example port</code>
+    Replace <code>8000</code> with your desired port. The <code>--reload</code> flag is useful for development.</p>
+<p>Alternatively, you can use the <code>start-services.sh</code> script (primarily designed for Linux/macOS environments) which attempts to start Redis (if not running) and the worker in the background:
+```bash</p>
+<h1>Ensure the script is executable: chmod +x ./scripts/start-services.sh</h1>
+<p>./scripts/start-services.sh</p>
+<h1>Then start the MCP server manually as shown above.</h1>
+<p>```</p>
+</li>
+</ol>
+<h2>MCP API</h2>
+<p>The server provides the following MCP-compliant endpoints:</p>
+<h3>Tools</h3>
+<ul>
+<li><strong><code>generate_text</code></strong><ul>
+<li><strong>Description:</strong> Sends a text generation request to the OpenRouter API via the background queue.</li>
+<li><strong>Input:</strong> <code>{"prompt": "Your text prompt here"}</code> (Type: <code>GenerateTextRequest</code>)</li>
+<li><strong>Output:</strong> <code>{"job_id": "rq:job:..."}</code> (A unique ID for the queued job)</li>
+</ul>
+</li>
+</ul>
+<h3>Resources</h3>
+<ul>
+<li><strong><code>job://{job_id}</code></strong><ul>
+<li><strong>Description:</strong> Retrieves the status and result of a previously submitted job.</li>
+<li><strong>URI Parameter:</strong> <code>job_id</code> (The ID returned by the <code>generate_text</code> tool).</li>
+<li><strong>Output:</strong> <code>{"status": "...", "result": "..."}</code> (Type: <code>JobStatusResponse</code>)<ul>
+<li><code>status</code>: The current state of the job (e.g., "queued", "started", "finished", "failed"). RQ uses slightly different terms internally ("started" vs "processing", "finished" vs "completed"). The resource maps these.</li>
+<li><code>result</code>: The generated text if the job status is "completed", otherwise <code>null</code>. If the job failed, the result might be <code>null</code> or contain error information depending on RQ's handling.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2>Testing</h2>
+<p>The project includes tests. Ensure you have installed the test dependencies (<code>pip install -e .[test]</code> or <code>uv pip install -e .[test]</code>).</p>
+<p>Run tests using <code>pytest</code>:</p>
+<pre><code class="language-bash">pytest tests
+</code></pre>
+<p><strong>Note:</strong> Tests might require mocking Redis (<code>fakeredis</code>) and potentially the OpenRouter API calls depending on their implementation.</p>
+<h2>Troubleshooting</h2>
+<ul>
+<li><strong>Error: <code>OpenRouter API key not available</code></strong>: Ensure <code>OPENROUTER_API_KEY</code> is set or <code>~/.api-openrouter</code> exists with your key on a single line (no whitespace).</li>
+<li><strong>Jobs stuck in "queued"</strong>: Verify that the RQ worker (<code>python -m mcp_waifu_queue.worker</code>) is running in a separate terminal and connected to the same Redis instance specified in <code>.env</code>. Check the worker logs for errors.</li>
+<li><strong>ConnectionRefusedError (Redis)</strong>: Make sure your Redis server is running and accessible at the <code>REDIS_URL</code> specified in <code>.env</code>.</li>
+<li><strong>MCP Server Connection Issues</strong>: Ensure the MCP server (<code>uvicorn ...</code>) is running and you are connecting to the correct host/port.</li>
+</ul>
+<h2>Contributing</h2>
+<ol>
+<li>Fork the repository.</li>
+<li>Create a new branch for your feature or bug fix (<code>git checkout -b feature/your-feature-name</code>).</li>
+<li>Make your changes and commit them (<code>git commit -am 'Add some feature'</code>).</li>
+<li>Push your branch to your forked repository (<code>git push origin feature/your-feature-name</code>).</li>
+<li>Create a Pull Request on the original repository.</li>
+</ol>
+<p>Please adhere to the project's coding standards and linting rules (<code>ruff</code>).</p>
+<h2>License</h2>
+<p>This project is licensed under the MIT-0 License - see the <a href="LICENSE">LICENSE</a> file for details.</p>
+</section>
+<section>
+<h2>Source Code</h2>
+<p class="section-desc">GitHub repository</p>
+<div class="link-list">
+<a href="https://github.com/waifuai/mcp-waifu-queue">https://github.com/waifuai/mcp-waifu-queue</a>
+</div>
+</section>
+<footer>
+<p>Generated for AI agent crawlability. Source: <a href="https://github.com/waifuai/mcp-waifu-queue">GitHub</a></p>
+</footer>
+</div>
+</body>
+</html>
