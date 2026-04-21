@@ -53,7 +53,7 @@ class Config(BaseSettings):
     )
     default_provider: str = Field(
         default="openrouter",
-        description="Default LLM provider to use when not overridden by env. Supported: openrouter, gemini.",
+        description="Default LLM provider to use when not overridden by env.",
     )
     request_timeout_seconds: int = Field(
         default=60,

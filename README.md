@@ -1,6 +1,6 @@
 # MCP Waifu Queue
 
-This project implements an MCP (Model Context Protocol) server for a conversational AI "waifu" character, leveraging the Google Gemini API via a Redis queue for asynchronous processing. It utilizes the `FastMCP` library for simplified server setup and management.
+This project implements an MCP (Model Context Protocol) server for a conversational AI "waifu" character, leveraging the OpenRouter API via a Redis queue for asynchronous processing. It utilizes the `FastMCP` library for simplified server setup and management.
 
 ## Table of Contents
 
@@ -18,31 +18,24 @@ This project implements an MCP (Model Context Protocol) server for a conversatio
 
 ## Features
 
-*   Text generation via provider abstraction:
-    - OpenRouter (default) using model from `~/.model-openrouter` or `deepseek/deepseek-chat-v3-0324:free`.
-    - Google Gemini supported as fallback or via selection, model from `~/.model-gemini` or `gemini-2.5-pro`.
+*   Text generation via OpenRouter using model from `~/.model-openrouter` or `openrouter/free`.
 *   Request queuing using Redis for handling concurrent requests asynchronously.
 *   MCP-compliant API using `FastMCP`.
 *   Job status tracking via MCP resources.
 *   Configuration via environment variables (`.env` file).
-*   Provider selection:
-    - Default provider: OpenRouter
-    - Override via `PROVIDER=openrouter` or `PROVIDER=gemini`
 *   API key loading:
     - OpenRouter: `OPENROUTER_API_KEY` or `~/.api-openrouter`
-    - Gemini: `GEMINI_API_KEY` or `GOOGLE_API_KEY` or `~/.api-gemini`
 *   Model selection files in home directory:
     - `~/.model-openrouter` for OpenRouter model name
-    - `~/.model-gemini` for Gemini model name
 
 ## Architecture
 
 The project consists of several key components:
 
 *   **`main.py`**: The main entry point, initializing the `FastMCP` application and defining MCP tools/resources.
-*   **`respond.py`**: Contains the core text generation logic using the Google GenAI SDK (`google-genai`) via the centralized `genai.Client`.
+*   **`respond.py`**: Contains the core text generation logic using the OpenRouter API.
 *   **`task_queue.py`**: Handles interactions with the Redis queue (using `python-rq`), enqueuing generation requests.
-*   **`utils.py`**: Contains utility functions, specifically `call_predict_response` which is executed by the worker to call the Gemini logic in `respond.py`.
+*   **`utils.py`**: Contains utility functions, specifically `call_predict_response` which is executed by the worker to call the generation logic in `respond.py`.
 *   **`worker.py`**: A Redis worker (`python-rq`) that processes jobs from the queue, calling `call_predict_response`.
 *   **`config.py`**: Manages configuration using `pydantic-settings`.
 *   **`models.py`**: Defines Pydantic models for MCP request and response validation.
@@ -53,7 +46,7 @@ The flow of a request is as follows:
 2.  The tool enqueues the request (prompt) to a Redis queue (handled by `task_queue.py`).
 3.  A `worker.py` process picks up the job from the queue.
 4.  The worker executes the `call_predict_response` function (from `utils.py`).
-5.  `call_predict_response` calls the `predict_response` function (in `respond.py`), which interacts with the Gemini API.
+5.  `call_predict_response` calls the `predict_response` function (in `respond.py`), which interacts with the OpenRouter API.
 6.  The generated text (or an error message) is returned by `predict_response` and stored as the job result by RQ.
 7.  The client can retrieve the job status and result using the `job://{job_id}` MCP resource (defined in `main.py`).
 
@@ -67,8 +60,8 @@ graph LR
         B -->|7. Return Job ID| A
         D[RQ Worker (worker.py)] --|>| C
         D -->|3. Dequeue Job & Execute| E(utils.call_predict_response)
-        E -->|4. Call Gemini Logic| F(respond.predict_response)
-        F -->|5. Call Gemini API| G[Google Gemini API]
+        E -->|4. Call Generation Logic| F(respond.predict_response)
+        F -->|5. Call OpenRouter API| G[OpenRouter API]
         G -->|6. Return Response| F
         F --> E
         E -->|Update Job Result in Redis| C
@@ -83,10 +76,10 @@ graph LR
 *   Python 3.7+
 *   `pip` or `uv` (Python package installer)
 *   Redis server (installed and running)
-*   An OpenRouter API Key and or a Google Gemini API Key
+*   An OpenRouter API Key
 
 You can find instructions for installing Redis on your system on the official Redis website: [https://redis.io/docs/getting-started/](https://redis.io/docs/getting-started/)
-You can obtain a Gemini API key from Google AI Studio: [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
+You can obtain an OpenRouter API key from: [https://openrouter.ai/](https://openrouter.ai/)
 
 ## Installation
 
@@ -115,41 +108,27 @@ You can obtain a Gemini API key from Google AI Studio: [https://aistudio.google.
 
 ## Configuration
 
-1.  **Provider Selection:**
-    - Default provider is OpenRouter. To override, set:
-      ```
-      PROVIDER=openrouter
-      ```
-      or
-      ```
-      PROVIDER=gemini
-      ```
-2.  **Model Names via files in $HOME:**
+1.  **Model Names via files in $HOME:**
     - OpenRouter model file:
       ```
-      echo "deepseek/deepseek-chat-v3-0324:free" > ~/.model-openrouter
+      echo "openrouter/free" > ~/.model-openrouter
       ```
-    - Gemini model file:
-      ```
-      echo "gemini-2.5-pro" > ~/.model-gemini
-      ```
-3.  **API Keys:** Preferred via environment variables with file fallback:
+2.  **API Keys:** Preferred via environment variables with file fallback:
     - OpenRouter: `OPENROUTER_API_KEY` or `~/.api-openrouter`
-    - Gemini: `GEMINI_API_KEY` or `GOOGLE_API_KEY` or `~/.api-gemini`
     ```bash
-    echo "YOUR_API_KEY_HERE" > ~/.api-gemini
+    echo "YOUR_API_KEY_HERE" > ~/.api-openrouter
     ```
     *(Replace `YOUR_API_KEY_HERE` with your actual key)*
 
-2.  **Other Settings:** Copy the `.env.example` file to `.env`:
+3.  **Other Settings:** Copy the `.env.example` file to `.env`:
 
     ```bash
     cp .env.example .env
     ```
 
-3.  Modify the `.env` file to set the remaining configuration values:
+4.  Modify the `.env` file to set the remaining configuration values:
 
-    *   `MAX_NEW_TOKENS`: Maximum number of tokens for the Gemini response (default: `2048`).
+    *   `MAX_NEW_TOKENS`: Maximum number of tokens for the response (default: `2048`).
     *   `REDIS_URL`: The URL of your Redis server (default: `redis://localhost:6379`).
     *   `FLASK_ENV`, `FLASK_APP`: Optional, related to Flask if used elsewhere, not core to the MCP server/worker operation.
 
@@ -185,7 +164,7 @@ The server provides the following MCP-compliant endpoints:
 ### Tools
 
 *   **`generate_text`**
-    *   **Description:** Sends a text generation request to the Gemini API via the background queue.
+    *   **Description:** Sends a text generation request to the OpenRouter API via the background queue.
     *   **Input:** `{"prompt": "Your text prompt here"}` (Type: `GenerateTextRequest`)
     *   **Output:** `{"job_id": "rq:job:..."}` (A unique ID for the queued job)
 
@@ -196,7 +175,7 @@ The server provides the following MCP-compliant endpoints:
     *   **URI Parameter:** `job_id` (The ID returned by the `generate_text` tool).
     *   **Output:** `{"status": "...", "result": "..."}` (Type: `JobStatusResponse`)
         *   `status`: The current state of the job (e.g., "queued", "started", "finished", "failed"). RQ uses slightly different terms internally ("started" vs "processing", "finished" vs "completed"). The resource maps these.
-        *   `result`: The generated text from Gemini if the job status is "completed", otherwise `null`. If the job failed, the result might be `null` or contain error information depending on RQ's handling.
+        *   `result`: The generated text if the job status is "completed", otherwise `null`. If the job failed, the result might be `null` or contain error information depending on RQ's handling.
 
 ## Testing
 
@@ -208,13 +187,11 @@ Run tests using `pytest`:
 pytest tests
 ```
 
-**Note:** Tests might require mocking Redis (`fakeredis`) and potentially the Gemini API calls depending on their implementation.
+**Note:** Tests might require mocking Redis (`fakeredis`) and potentially the OpenRouter API calls depending on their implementation.
 
 ## Troubleshooting
 
 *   **Error: `OpenRouter API key not available`**: Ensure `OPENROUTER_API_KEY` is set or `~/.api-openrouter` exists with your key on a single line (no whitespace).
-*   **Error: `Gemini API key not available`**: Ensure `GEMINI_API_KEY` or `GOOGLE_API_KEY` is set, or `~/.api-gemini` exists with your key on a single line.
-*   **Error during Gemini API call (e.g., AuthenticationError, PermissionDenied)**: Double-check that the API key in `~/.api-gemini` (or the fallback environment variable) is correct and valid. Ensure the API is enabled for your Google Cloud project if applicable.
 *   **Jobs stuck in "queued"**: Verify that the RQ worker (`python -m mcp_waifu_queue.worker`) is running in a separate terminal and connected to the same Redis instance specified in `.env`. Check the worker logs for errors.
 *   **ConnectionRefusedError (Redis)**: Make sure your Redis server is running and accessible at the `REDIS_URL` specified in `.env`.
 *   **MCP Server Connection Issues**: Ensure the MCP server (`uvicorn ...`) is running and you are connecting to the correct host/port.
@@ -225,7 +202,7 @@ pytest tests
 2.  Create a new branch for your feature or bug fix (`git checkout -b feature/your-feature-name`).
 3.  Make your changes and commit them (`git commit -am 'Add some feature'`).
 4.  Push your branch to your forked repository (`git push origin feature/your-feature-name`).
-5.  Create a new Pull Request on the original repository.
+5.  Create a Pull Request on the original repository.
 
 Please adhere to the project's coding standards and linting rules (`ruff`).
 

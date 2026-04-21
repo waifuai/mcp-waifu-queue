@@ -15,7 +15,7 @@ Key Features:
 
 API Configuration:
 - API URL: https://openrouter.ai/api/v1/chat/completions
-- Default Model: deepseek/deepseek-chat-v3-0324:free
+- Default Model: openrouter/free
 - Temperature: 0.2 (for consistent responses)
 - Timeout: 60 seconds (configurable)
 
@@ -27,7 +27,7 @@ The module supports multiple authentication methods in order of precedence:
 Model Selection:
 Models can be configured via:
 1. ~/.model-openrouter file containing the model name
-2. Default model fallback: deepseek/deepseek-chat-v3-0324:free
+2. Default model fallback: openrouter/free
 
 Usage:
 This module is typically used through the respond.py module, which provides
@@ -52,7 +52,7 @@ import requests
 
 
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-DEFAULT_OPENROUTER_MODEL = "deepseek/deepseek-chat-v3-0324:free"
+DEFAULT_OPENROUTER_MODEL = "openrouter/free"
 OPENROUTER_API_KEY_FILE_PATH = Path.home() / ".api-openrouter"
 MODEL_FILE_PATH = Path.home() / ".model-openrouter"
 

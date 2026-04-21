@@ -2,50 +2,30 @@
 AI Provider Dispatch and Text Generation.
 
 This module implements the core text generation functionality for the MCP Waifu Queue
-system, providing a unified interface for multiple AI providers with automatic
-fallback and provider selection logic.
+system, providing OpenRouter-based text generation.
 
 Key Features:
-- Multi-provider support (OpenRouter and Google Gemini)
-- Automatic provider selection and fallback logic
+- OpenRouter text generation via HTTP API
 - Centralized text generation dispatch
-- Error handling and logging for all providers
-- Lazy imports to avoid hard dependencies
-- Configuration-driven provider selection
-
-Provider Support:
-- OpenRouter (default): Uses deepseek/deepseek-chat-v3-0324:free by default
-- Google Gemini (fallback): Uses gemini-2.5-pro by default
-- Automatic fallback between providers on failures
-- Runtime provider override via PROVIDER environment variable
-
-Architecture:
-The module provides a single public function `predict_response()` that:
-1. Loads configuration and determines the active provider
-2. Resolves the appropriate model for the selected provider
-3. Attempts text generation with the primary provider
-4. Falls back to the secondary provider if the primary fails
-5. Provides comprehensive error handling and logging
+- Error handling and logging
+- Configuration-driven model selection
 
 Model Configuration:
-- OpenRouter models: Configured via ~/.model-openrouter or default
-- Gemini models: Configured via ~/.model-gemini or default
-- Support for custom models via file configuration
+- OpenRouter models: Configured via ~/.model-openrouter or default 'openrouter/free'
 
 Usage:
 This module is used by the RQ worker process through utils.py. The main
-entry point is the predict_response() function which handles all provider
+entry point is the predict_response() function which handles provider
 logic and returns generated text.
 
 Dependencies:
-- google-genai: For Google Gemini API integration
 - requests: For OpenRouter API calls
 - logging: For operation logging and debugging
 - config: For configuration management
 """
 
 # mcp_waifu_queue/respond.py
-# Provider-dispatching text generation with OpenRouter default and Gemini fallback.
+# OpenRouter-only text generation.
 
 import logging
 import os
@@ -54,17 +34,11 @@ from typing import Optional
 
 from mcp_waifu_queue.config import Config
 
-# Lazy imports inside providers to avoid hard dependency failures during import time
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# Provider constants
-PROVIDER_OPENROUTER = "openrouter"
-PROVIDER_GEMINI = "gemini"
-
 # Model config file locations
 MODEL_FILE_OPENROUTER = Path.home() / ".model-openrouter"
-MODEL_FILE_GEMINI = Path.home() / ".model-gemini"
 
 def _read_single_line(path: Path) -> Optional[str]:
     try:
@@ -75,21 +49,8 @@ def _read_single_line(path: Path) -> Optional[str]:
         logger.warning(f"Failed reading {path}: {e}")
     return None
 
-def _resolve_model_for(provider: str) -> Optional[str]:
-    if provider == PROVIDER_OPENROUTER:
-        return _read_single_line(MODEL_FILE_OPENROUTER) or "deepseek/deepseek-chat-v3-0324:free"
-    if provider == PROVIDER_GEMINI:
-        return _read_single_line(MODEL_FILE_GEMINI) or "gemini-2.5-pro"
-    return None
-
-def _select_provider(cfg: Config) -> str:
-    # Env override already applied in Config.load; still honor explicit env if present
-    env_provider = os.getenv("PROVIDER")
-    provider = (env_provider or cfg.default_provider or PROVIDER_OPENROUTER).strip().lower()
-    if provider not in (PROVIDER_OPENROUTER, PROVIDER_GEMINI):
-        logger.warning(f"Unknown provider '{provider}', falling back to '{PROVIDER_OPENROUTER}'")
-        return PROVIDER_OPENROUTER
-    return provider
+def _resolve_model() -> str:
+    return _read_single_line(MODEL_FILE_OPENROUTER) or "openrouter/free"
 
 def _predict_with_openrouter(prompt: str, model: str, timeout: int) -> str:
     import requests
@@ -130,91 +91,13 @@ def _predict_with_openrouter(prompt: str, model: str, timeout: int) -> str:
         raise RuntimeError("OpenRouter response empty content")
     return content
 
-def _predict_with_gemini(prompt: str, model: str, max_tokens: int) -> str:
-    from google import genai
-
-    # Auth precedence:
-    # 1) GEMINI_API_KEY
-    # 2) GOOGLE_API_KEY
-    # 3) ~/.api-gemini
-    key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    if not key or not key.strip():
-        key = _read_single_line(Path.home() / ".api-gemini")
-
-    if not key:
-        raise RuntimeError("Gemini API key not available via env or ~/.api-gemini")
-
-    client = genai.Client(api_key=key)
-    generation_config = {"max_output_tokens": max_tokens}
-    resp = client.models.generate_content(
-        model=model,
-        contents=prompt,
-        generation_config=generation_config,
-    )
-    text = getattr(resp, "text", None)
-    if not text:
-        candidates = getattr(resp, "candidates", None)
-        if not candidates:
-            feedback = getattr(resp, "prompt_feedback", None)
-            block_reason = getattr(feedback, "block_reason", "Unknown")
-            raise RuntimeError(f"Gemini response blocked or empty. Reason: {block_reason}")
-        try:
-            first = candidates[0]
-            content = getattr(first, "content", None)
-            parts = getattr(content, "parts", None) if content else None
-            if parts:
-                maybe_text = "".join(getattr(p, "text", "") for p in parts if hasattr(p, "text"))
-                text = maybe_text or None
-        except Exception:
-            text = None
-
-    if not text:
-        raise RuntimeError("Gemini response contained no text.")
-    return text
-
 def predict_response(prompt: str) -> str:
     """
-    Generates a response for a given prompt using selected provider.
-    Default provider is OpenRouter unless overridden by PROVIDER env or config.default_provider.
+    Generates a response for a given prompt using OpenRouter.
     """
     cfg = Config.load()
-    provider = _select_provider(cfg)
-    model = _resolve_model_for(provider)
+    model = _resolve_model()
 
-    logger.info(f"Provider '{provider}' selected; model '{model}'")
+    logger.info(f"Using OpenRouter with model '{model}'")
 
-    if provider == PROVIDER_OPENROUTER:
-        try:
-            return _predict_with_openrouter(prompt, model=model or "deepseek/deepseek-chat-v3-0324:free", timeout=cfg.request_timeout_seconds)
-        except Exception as e:
-            logger.error(f"OpenRouter failed: {e}", exc_info=True)
-            # Fallback to Gemini
-            try:
-                gem_model = _resolve_model_for(PROVIDER_GEMINI) or "gemini-2.5-pro"
-                return _predict_with_gemini(prompt, model=gem_model, max_tokens=cfg.max_new_tokens)
-            except Exception as ge:
-                logger.error(f"Gemini fallback failed: {ge}", exc_info=True)
-                raise RuntimeError(f"All providers failed: OpenRouter error: {e} ; Gemini error: {ge}")
-    elif provider == PROVIDER_GEMINI:
-        try:
-            return _predict_with_gemini(prompt, model=model or "gemini-2.5-pro", max_tokens=cfg.max_new_tokens)
-        except Exception as e:
-            logger.error(f"Gemini failed: {e}", exc_info=True)
-            # Fallback to OpenRouter
-            try:
-                or_model = _resolve_model_for(PROVIDER_OPENROUTER) or "deepseek/deepseek-chat-v3-0324:free"
-                return _predict_with_openrouter(prompt, model=or_model, timeout=cfg.request_timeout_seconds)
-            except Exception as oe:
-                logger.error(f"OpenRouter fallback failed: {oe}", exc_info=True)
-                raise RuntimeError(f"All providers failed: Gemini error: {e} ; OpenRouter error: {oe}")
-    else:
-        # Safety: unknown provider, try OpenRouter then Gemini
-        try:
-            return _predict_with_openrouter(prompt, model="deepseek/deepseek-chat-v3-0324:free", timeout=cfg.request_timeout_seconds)
-        except Exception as e:
-            logger.error(f"OpenRouter failed under unknown provider: {e}", exc_info=True)
-            try:
-                return _predict_with_gemini(prompt, model="gemini-2.5-pro", max_tokens=cfg.max_new_tokens)
-            except Exception as ge:
-                logger.error(f"Gemini fallback failed under unknown provider: {ge}", exc_info=True)
-                raise RuntimeError(f"All providers failed under unknown provider: OR: {e} ; Gemini: {ge}")
+    return _predict_with_openrouter(prompt, model=model or "openrouter/free", timeout=cfg.request_timeout_seconds)
