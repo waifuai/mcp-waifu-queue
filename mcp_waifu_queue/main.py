@@ -22,15 +22,14 @@ Usage:
 
 import logging
 
-from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp import Context
+from mcp.server.mcpserver import MCPServer, Context
 
 from mcp_waifu_queue.config import Config
 from mcp_waifu_queue.models import GenerateTextRequest, JobStatusResponse
 from mcp_waifu_queue.task_queue import q, add_to_queue, get_job_status_from_queue
 
 # --- Configuration and Logging ---
-app = FastMCP(name="WaifuQueue")
+app = MCPServer(name="WaifuQueue")
 config = Config.load()
 app.config = config
 

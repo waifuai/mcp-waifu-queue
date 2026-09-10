@@ -14,7 +14,7 @@ dependencies = [
     "anyio>=4.3",
     "redis>=4.0",
     "rq>=1.10",
-    "mcp>=1.1.0"
+    "mcp>=2.2.0"
 ]
 
 [project.optional-dependencies]
